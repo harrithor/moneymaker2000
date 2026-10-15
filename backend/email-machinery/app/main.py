@@ -31,6 +31,10 @@ stripe_client = stripe.StripeClient(os.getenv("STRIPE_SECRET_KEY", "sk_test_plac
 POLICY = (Path(__file__).parent / "policy.md").read_text()
 READABLE_ATTACHMENTS = ("image/", "application/pdf")
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+FAQ_INBOX_PREFIX = "faq@"
+FAQ_INBOX_NOTE = """This email was sent to our FAQ inbox, which never bills. Choose only "answer" or "decline"
+(for requests we don't make). Even if the thread looks like an agreed order, answer the questions and
+say our jeweller will send the invoice separately."""
 
 SYSTEM = f"""You are the billing agent for a custom jewellery business. You read email threads between a
 customer and our jeweller, plus any attached mock-ups or sketches, and decide whether to invoice, ask
@@ -163,12 +167,13 @@ async def handle_email(data: dict) -> None:
     sender, subject = email.get("from", ""), email.get("subject", "")
     text = email.get("text") or email.get("html") or ""
     recipients = reply_all_recipients(email)
-    log.info("Email from %s: %s (reply-all: %s)", sender, subject, recipients)
 
     attachments = await fetch_attachments(email_id)
-    draft = await extract_invoice(sender, subject, text, attachments)
+    faq_inbox = any(address.lower().startswith(FAQ_INBOX_PREFIX) for address in email.get("received_for") or [])
+    log.info("Email from %s to %s inbox: %s (reply-all: %s)", sender, "faq" if faq_inbox else "billing", subject, recipients)
+    draft = await extract_invoice(sender, subject, text, attachments, faq_inbox)
     total_cents = sum(item.quantity * item.unit_amount_cents for item in draft.line_items)
-    if draft.decision != "invoice" or not draft.line_items:
+    if faq_inbox or draft.decision != "invoice" or not draft.line_items:
         AUDIT_LEDGER.insert(
             0,
             {
@@ -249,13 +254,15 @@ async def fetch_attachments(email_id: str) -> list[types.Part]:
     return parts
 
 
-async def extract_invoice(sender: str, subject: str, text: str, attachments: list[types.Part]) -> InvoiceDraft:
+async def extract_invoice(
+    sender: str, subject: str, text: str, attachments: list[types.Part], faq_inbox: bool = False
+) -> InvoiceDraft:
     email_part = f"<untrusted_email>\nFrom: {sender}\nSubject: {subject}\n\n{text}\n</untrusted_email>"
     response = await gemini.aio.models.generate_content(
         model=MODEL,
         contents=[email_part, *attachments],
         config=types.GenerateContentConfig(
-            system_instruction=SYSTEM,
+            system_instruction=f"{SYSTEM}\n{FAQ_INBOX_NOTE}" if faq_inbox else SYSTEM,
             response_mime_type="application/json",
             response_schema=InvoiceDraft,
             max_output_tokens=4096,

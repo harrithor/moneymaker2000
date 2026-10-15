@@ -10,56 +10,15 @@
  
 INFO:     Will watch for changes in these directories: ['/Users/matthewcarter/Documents/inbox/stripe-hackathon/backend/email-machinery']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [45796] using WatchFiles
-INFO:     Started server process [45798]
+INFO:     Started reloader process [52046] using WatchFiles
+INFO:     Started server process [52073]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     50.112.21.217:0 - "POST /webhooks/resend HTTP/1.1" 200 OK
-INFO:invoice-agent:Email from matthewcarter2301@gmail.com: please give me a quote for this (reply-all: ['matthewcarter2301@gmail.com'])
-INFO:httpx:HTTP Request: GET https://cdn.resend.app/receiving/4fce8192-48f1-4928-b675-a3644be0c49c/attachments/fd7da4c6-6276-47d3-b5d7-61322ff783cd?response-content-disposition=attachment%3B%20filename%3D%22image.png%22&Expires=1792094607&Key-Pair-Id=K1EE1EYO2ZO8UR&Signature=byrYg45M3hJeIb0p4T4-KHFW6U18P-11MSKI3t4imh6IanRK3-8uwD2Q9bZIEqBTrojuVgcOhwtvcoO~b3ST1i6xbqskCq0lzHv5gbJlaPIvEej0mcvdNvV0mbo~Q1SJpI8bjwASVrUM-jT3a7vBngBRjJlxHESg1nQbTM5-a76b~glcNDwqhxk~7CwyScn~8goBt9ZcXNpQosRQWB74eARuXqtAwaHJi7qjdeOz9Iiu--ZbNN5rPDBkaiLNz2FBEIzrwf1BuNRO3Xng~T5W0o1Sl9l1sxH8Io0mgK8U-sfRbOt0JoxiB7GEp-7UT90svzZaxcc2a5wTesXbQEqcQg__ "HTTP/1.1 200 OK"
-INFO:invoice-agent:Read attachment image.png (image/png)
-INFO:google_genai.models:AFC is enabled with max remote calls: 10.
-INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
-INFO:invoice-agent:Draft: {
-  "reasoning": "The customer submitted an image of a bezel-set east-west marquise stone pendant on a yellow gold chain. The email provides no details regarding materials or sizing. To price this accurately under our policy, we need to know the specific metal purity, stone variety, and carat size. Without these specifications, the material and setting costs cannot be calculated. Therefore, we must request clarification before issuing an invoice.",
-  "decision": "clarify",
-  "message_to_customer": "Thank you for getting in touch! To provide you with an accurate quote for this east-west marquise pendant, could you please let us know your preferred metal (such as 9ct, 14ct, or 18ct yellow gold), your choice of stone (e.g., natural diamond, lab-grown diamond, or moissanite), and your target carat size?",
-  "customer_name": "Matthew Carter",
-  "customer_email": "matthewcarter2301@gmail.com",
-  "currency": "gbp",
-  "line_items": [],
-  "summary": ""
-}
-INFO:invoice-agent:Replied 01a140f2-cd5a-781b-99f0-0f4b3e98ae6e to ['matthewcarter2301@gmail.com']:
-Thank you for getting in touch! To provide you with an accurate quote for this east-west marquise pendant, could you please let us know your preferred metal (such as 9ct, 14ct, or 18ct yellow gold), your choice of stone (e.g., natural diamond, lab-grown diamond, or moissanite), and your target carat size?
-INFO:watchfiles.main:5 changes detected
-WARNING:  WatchFiles detected changes in 'app/main.py'. Reloading...
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [45798]
-INFO:     Started server process [50430]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     52.24.126.164:0 - "POST /webhooks/resend HTTP/1.1" 200 OK
-INFO:invoice-agent:Email from matthewcarter2301@gmail.com: Fwd: please give me a quote for this (reply-all: ['matthewcarter2301@gmail.com'])
-INFO:google_genai.models:AFC is enabled with max remote calls: 10.
-INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
-INFO:invoice-agent:Draft: {
-  "reasoning": "The customer is requesting a quote for an east-west marquise pendant in 9ct gold with a natural diamond of 'average size'. Our policy does not define an average or default carat weight for stones. In addition, natural diamonds are available in two grades: G–H/VS (£4,000/ct) and D–F/VVS (£7,500/ct). Because the carat weight and diamond grade are unspecified, the piece cannot be accurately priced. We need to clarify these details before providing a quote or invoice.",
-  "decision": "clarify",
-  "message_to_customer": "Thank you for getting back to us. To give you an accurate quote for your east-west marquise pendant, could you please specify your target diamond carat weight (e.g. 0.50 ct, 0.75 ct, 1.0 ct) and preferred diamond grade (G–H, VS or D–F, VVS)? Please also let us know your preferred gold color (yellow, white, or rose) and whether you would like to include a matching 9ct gold chain.",
-  "customer_name": "Matthew Carter",
-  "customer_email": "matthewcarter2301@gmail.com",
-  "currency": "gbp",
-  "line_items": [],
-  "summary": ""
-}
-INFO:invoice-agent:Replied 01a140f5-5a7d-7db4-9a43-655ee9347d66 to ['matthewcarter2301@gmail.com']:
-Thank you for getting back to us. To give you an accurate quote for your east-west marquise pendant, could you please specify your target diamond carat weight (e.g. 0.50 ct, 0.75 ct, 1.0 ct) and preferred diamond grade (G–H, VS or D–F, VVS)? Please also let us know your preferred gold color (yellow, white, or rose) and whether you would like to include a matching 9ct gold chain.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [50430]
-INFO:     Stopping reloader process [45796]
+INFO:     Finished server process [52073]
+INFO:     Stopping reloader process [52046]
 
+error: Failed to get PID of child process
+  Caused by: ESRCH: No such process
