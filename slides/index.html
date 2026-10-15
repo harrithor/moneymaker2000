@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen &amp; Lode — the inbox that invoices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --tangerine:#ff6b35; --peach:#f7c59f; --beige:#efefd0; --azure:#004e89;
+    --azure-deep:#003a66; --ink:#002a4a;
+    --display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#00213b;overflow:hidden}
+  body{font-family:var(--display);-webkit-font-smoothing:antialiased}
+
+  /* fixed 16:9 stage, scaled to the window so a screen recording is pixel-stable */
+  .stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;}
+  .slide{position:absolute;inset:0;padding:96px 120px;display:none;flex-direction:column;overflow:hidden}
+  .slide.on{display:flex}
+  .dark{background:var(--azure);color:var(--beige)}
+  .light{background:var(--beige);color:var(--ink)}
+  .hot{background:var(--tangerine);color:var(--ink)}
+
+  .kicker{font-size:22px;font-weight:500;opacity:.75;margin-bottom:28px}
+  h1{font-size:96px;line-height:.98;font-weight:800;letter-spacing:-.035em}
+  h2{font-size:64px;line-height:1.02;font-weight:700;letter-spacing:-.03em;max-width:1200px}
+  p.lede{font-size:30px;line-height:1.4;font-weight:300;max-width:980px;margin-top:28px}
+  .crit{position:absolute;right:120px;top:96px;font-size:20px;font-weight:500;padding:8px 16px;border-radius:999px;border:2px solid currentColor;opacity:.85}
+  .crit b{color:var(--tangerine)}
+  .light .crit b{color:#c8431a}
+  .foot{position:absolute;left:120px;bottom:56px;font-size:18px;opacity:.55}
+
+  /* 1 — hook */
+  .price{display:flex;align-items:baseline;gap:48px;margin-top:auto}
+  .price .label{font-size:64px;font-weight:300;letter-spacing:-.02em}
+  .price .zero{font-size:360px;line-height:.8;font-weight:800;letter-spacing:-.06em;color:var(--tangerine);position:relative}
+  .price .zero::after{content:"";position:absolute;left:-4%;right:-4%;top:52%;height:18px;background:var(--beige);
+    transform:scaleX(0) rotate(-8deg);transform-origin:left;animation:strike .7s 1s cubic-bezier(.7,0,.2,1) forwards}
+  @keyframes strike{to{transform:scaleX(1) rotate(-8deg)}}
+  .hook-sub{font-size:34px;font-weight:300;line-height:1.35;max-width:900px;margin-top:56px}
+  .hook-sub strong{font-weight:700}
+
+  /* 2 — story */
+  .thread{display:grid;grid-template-columns:1fr 1fr;gap:72px;margin-top:56px;align-items:start}
+  .mail{background:#fff;border-radius:18px;padding:28px 32px;box-shadow:0 2px 0 rgba(0,42,74,.12);font-size:24px;line-height:1.45;margin-bottom:22px;max-width:620px}
+  .mail .from{font-size:17px;font-weight:600;color:var(--azure);margin-bottom:8px}
+  .mail.us{margin-left:60px;background:var(--azure);color:var(--beige)}
+  .mail.us .from{color:var(--peach)}
+  .sketch{display:inline-block;margin-top:12px;padding:6px 12px;border-radius:8px;background:var(--peach);font-family:var(--mono);font-size:16px;color:var(--ink)}
+  .chores{list-style:none;font-size:34px;font-weight:500;line-height:1.25}
+  .chores li{padding:18px 0;border-bottom:2px solid rgba(0,42,74,.15);display:flex;justify-content:space-between}
+  .chores li span{font-weight:300;opacity:.6;font-size:24px}
+  .chores li.last{border:none;color:#c8431a;font-weight:700}
+
+  /* 3 — demo cue */
+  .steps{list-style:none;counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:auto}
+  .steps li{counter-increment:s;background:var(--beige);border-radius:20px;padding:30px;font-size:26px;line-height:1.3;font-weight:500;min-height:250px;display:flex;flex-direction:column}
+  .steps li::before{content:counter(s);font-size:72px;font-weight:800;color:var(--tangerine);line-height:1;margin-bottom:auto;letter-spacing:-.04em}
+  .steps li small{display:block;font-size:18px;font-weight:300;opacity:.7;margin-top:10px}
+  .hot h1{color:var(--ink)}
+
+  /* 4 — pipeline */
+  .pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:auto;position:relative}
+  .node{padding:0 22px 0 0;position:relative}
+  .node .dot{width:22px;height:22px;border-radius:50%;background:var(--beige);margin-bottom:28px;position:relative;z-index:1}
+  .node.money .dot{background:var(--tangerine);box-shadow:0 0 0 8px rgba(255,107,53,.25)}
+  .pipe::before{content:"";position:absolute;left:11px;right:40px;top:10px;height:2px;background:rgba(239,239,208,.35)}
+  .node h3{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-bottom:14px}
+  .node.money h3{color:var(--tangerine)}
+  .node p{font-size:20px;line-height:1.45;font-weight:300;opacity:.85}
+  .node code{font-family:var(--mono);font-size:15px;color:var(--peach);display:block;margin-top:14px;line-height:1.5}
+
+  /* 5 — decisions */
+  .decisions{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:48px}
+  .dec{border-radius:20px;padding:28px;background:#fff}
+  .dec .name{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--azure)}
+  .dec.inv{background:var(--tangerine)}
+  .dec.inv .name{color:var(--ink)}
+  .dec p{font-size:21px;line-height:1.4;margin-top:12px}
+  .quote{margin-top:auto;display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:start}
+  .quote .tag{font-family:var(--mono);font-size:16px;background:var(--azure);color:var(--beige);padding:8px 14px;border-radius:8px;white-space:nowrap}
+  .quote blockquote{font-size:28px;line-height:1.4;font-weight:300;max-width:1100px}
+  .quote blockquote strong{font-weight:700}
+
+  /* 6 — control */
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:20px 64px;margin-top:52px}
+  .rule{border-top:2px solid rgba(239,239,208,.25);padding-top:18px}
+  .rule h3{font-size:28px;font-weight:700;letter-spacing:-.015em}
+  .rule p{font-size:20px;line-height:1.45;font-weight:300;opacity:.85;margin-top:6px}
+  .rule.code-gate h3{color:var(--tangerine)}
+  pre.code,code,.r,.dec .name,.tag{font-variant-ligatures:none}
+  pre.code{margin-top:auto;font-family:var(--mono);font-size:21px;line-height:1.6;background:var(--azure-deep);border-radius:16px;padding:24px 30px;color:var(--beige)}
+  pre.code .ln{opacity:.4;margin-right:22px}
+  pre.code .hl{color:var(--peach)}
+  pre.code .k{color:var(--tangerine)}
+
+  /* 7 — every pound */
+  .pound{display:grid;grid-template-columns:1.15fr 1fr;gap:64px;margin-top:36px}
+  .invoice{background:#fff;border-radius:20px;padding:26px 38px;box-shadow:0 2px 0 rgba(0,42,74,.12)}
+  .invoice .head{display:flex;justify-content:space-between;font-size:18px;font-weight:600;color:var(--azure);margin-bottom:18px}
+  .line{display:grid;grid-template-columns:1fr auto;gap:2px 24px;padding:8px 0;border-bottom:1px solid rgba(0,42,74,.12)}
+  .line .d{font-size:22px;font-weight:500}
+  .line .a{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+  .line .r{font-family:var(--mono);font-size:14px;color:var(--azure);opacity:.75}
+  .total{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px}
+  .total span{font-size:22px;font-weight:500}
+  .total b{font-size:48px;font-weight:800;letter-spacing:-.03em;color:#c8431a;font-variant-numeric:tabular-nums}
+  .why{background:var(--azure);color:var(--beige);border-radius:20px;padding:34px 38px;display:flex;flex-direction:column}
+  .why .from{font-size:18px;color:var(--peach);font-weight:600}
+  .why .subj{font-size:26px;font-weight:700;margin:8px 0 22px}
+  .why p{font-size:21px;line-height:1.5;font-weight:300}
+  .why .lbl{font-weight:700;margin-top:18px;display:block;color:var(--peach);font-size:18px}
+  .note{font-size:15px;opacity:.55;margin-top:auto}
+
+  /* 8 — close */
+  .close-big{font-size:150px;line-height:.92;font-weight:800;letter-spacing:-.05em;margin-top:auto}
+  .close-big em{font-style:normal;color:var(--tangerine)}
+  .scores{display:flex;gap:56px;margin-top:64px;font-size:22px;font-weight:300}
+  .scores b{display:block;font-size:44px;font-weight:800;color:var(--peach);letter-spacing:-.03em}
+
+  /* chrome */
+  .bar{position:fixed;left:0;bottom:0;height:4px;background:var(--tangerine);transition:width .3s ease;z-index:5}
+  .count{position:fixed;right:18px;bottom:14px;font:500 13px var(--display);color:rgba(239,239,208,.5);z-index:5}
+  @media (prefers-reduced-motion:reduce){.price .zero::after{animation:none;transform:scaleX(1) rotate(-8deg)}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <!-- 1 HOOK -->
+  <section class="slide dark on">
+    <div class="kicker">Lumen &amp; Lode, bespoke jewellery</div>
+    <div class="price">
+      <span class="label">Custom jewellery</span>
+      <span class="zero">£0</span>
+    </div>
+    <p class="hook-sub">That's the price on our website. The real price is worked out over email, one thread at a time. <strong>So we put an agent in the inbox that sends the invoice.</strong></p>
+  </section>
+
+  <!-- 2 STORY -->
+  <section class="slide light">
+    <div class="kicker">Every bespoke piece starts as a conversation</div>
+    <h2>A sketch and “how much?” turns into an hour of admin.</h2>
+    <div class="thread">
+      <div>
+        <div class="mail">
+          <div class="from">Customer</div>
+          Could you quote this pendant? Marquise stone, set sideways, gold chain.
+          <div><span class="sketch">mockup.png</span></div>
+        </div>
+        <div class="mail us">
+          <div class="from">Our jeweller</div>
+          Lovely. Which gold, and roughly what size of stone?
+        </div>
+      </div>
+      <ul class="chores">
+        <li>Read the brief and the mock-up <span>by hand</span></li>
+        <li>Price metal, stones, labour <span>by hand</span></li>
+        <li>Type up the invoice <span>by hand</span></li>
+        <li>Reply, chase, tell the team <span>by hand</span></li>
+        <li class="last">Now: none of it</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 DEMO CUE -->
+  <section class="slide hot">
+    <div class="crit" style="border-color:var(--ink)">Works end to end · 35</div>
+    <div class="kicker">Live, in Stripe test mode</div>
+    <h1>One email in.<br>One Stripe invoice out.</h1>
+    <ol class="steps">
+      <li>Customer emails a brief and a mock-up<small>Received by Resend, signature checked</small></li>
+      <li>The agent reads the thread and the image<small>Gemini, priced against our policy</small></li>
+      <li>A finalised invoice appears in Stripe<small>Customer, line items, hosted payment page</small></li>
+      <li>Everyone on the thread gets the PDF<small>And the team gets the reasoning</small></li>
+    </ol>
+  </section>
+
+  <!-- 4 PIPELINE -->
+  <section class="slide dark">
+    <div class="kicker">How it works</div>
+    <h2>No human raises the bill. The email does.</h2>
+    <div class="pipe">
+      <div class="node"><div class="dot"></div><h3>Email arrives</h3><p>Resend posts a signed webhook; we verify it and answer instantly.</p><code>POST /webhooks/resend</code></div>
+      <div class="node"><div class="dot"></div><h3>Read it all</h3><p>Body, plus images and PDFs up to 10 MB, so the agent sees the mock-up.</p><code>fetch_attachments()</code></div>
+      <div class="node"><div class="dot"></div><h3>Decide</h3><p>Gemini returns a typed draft: reasoning, decision, line items in pence.</p><code>extract_invoice() → InvoiceDraft</code></div>
+      <div class="node money"><div class="dot"></div><h3>Bill in Stripe</h3><p>Find or create the customer, add one item per component, finalise.</p><code>create_stripe_invoice()</code></div>
+      <div class="node"><div class="dot"></div><h3>Reply to all</h3><p>PDF and pay link to the whole thread; a receipt with the why to the team.</p><code>reply() · notify_team()</code></div>
+    </div>
+  </section>
+
+  <!-- 5 DECISIONS -->
+  <section class="slide light">
+    <div class="crit">Autonomy with control · 25</div>
+    <div class="kicker">It only bills when it's sure</div>
+    <h2>Four ways to answer an email. Only one of them costs money.</h2>
+    <div class="decisions">
+      <div class="dec inv"><div class="name">invoice</div><p>The piece is clear enough to price. Stripe invoice, PDF, done.</p></div>
+      <div class="dec"><div class="name">clarify</div><p>Something's missing. Ask for exactly that, nothing else.</p></div>
+      <div class="dec"><div class="name">decline</div><p>On our won't-make list: weapons, logos, hate symbols. Said politely.</p></div>
+      <div class="dec"><div class="name">answer</div><p>It's a question, not an order. Answered from the policy only.</p></div>
+    </div>
+    <div class="quote">
+      <span class="tag">real run · clarify</span>
+      <blockquote>“The customer is requesting… a natural diamond of ‘average size’. <strong>Our policy does not define an average or default carat weight for stones.</strong> … We need to clarify these details before providing a quote or invoice.”</blockquote>
+    </div>
+  </section>
+
+  <!-- 6 GUARDRAILS -->
+  <section class="slide dark">
+    <div class="crit">Autonomy with control · 25</div>
+    <div class="kicker">The guardrails</div>
+    <h2>A written policy, and code that won't let it slip.</h2>
+    <div class="rules">
+      <div class="rule"><h3>Prices come from policy.md</h3><p>Or a price our jeweller confirmed, and never below materials cost. Never what the customer says it should be.</p></div>
+      <div class="rule"><h3>The email is untrusted</h3><p>Wrapped in &lt;untrusted_email&gt;. Instructions inside it are data, not commands.</p></div>
+      <div class="rule code-gate"><h3>The FAQ inbox can't bill</h3><p>Enforced in code, not just the prompt: whatever the model says, faq@ never reaches Stripe.</p></div>
+      <div class="rule"><h3>No double billing</h3><p>Every Stripe call's idempotency key comes from the email id, so webhook retries are harmless.</p></div>
+    </div>
+    <pre class="code"><span class="ln">152</span>    <span class="k">if</span> faq_inbox <span class="k">or</span> draft.decision != <span class="hl">"invoice"</span> <span class="k">or not</span> draft.line_items:
+<span class="ln">153</span>        <span class="k">await</span> reply(data, recipients, subject, draft.message_to_customer)
+<span class="ln">154</span>        <span class="k">return</span></pre>
+  </section>
+
+  <!-- 7 EVERY POUND -->
+  <section class="slide light">
+    <div class="crit">Explains every pound · 20</div>
+    <div class="kicker">The audit trail</div>
+    <h2>Every line traces back to the policy.</h2>
+    <div class="pound">
+      <div class="invoice">
+        <div class="head"><span>Invoice · east-west marquise pendant</span><span>GBP</span></div>
+        <div class="line"><span class="d">9ct yellow gold, 3 g</span><span class="a">£135</span><span class="r">Metals: 9ct £45/g × pendant 3 g</span></div>
+        <div class="line"><span class="d">Lab-grown diamond, 0.50 ct</span><span class="a">£300</span><span class="r">Stones: £600/ct</span></div>
+        <div class="line"><span class="d">9ct gold chain, 45 cm</span><span class="a">£220</span><span class="r">Findings and chains</span></div>
+        <div class="line"><span class="d">Design and CAD from mock-up</span><span class="a">£150</span><span class="r">Labour: per piece</span></div>
+        <div class="line"><span class="d">Making, 3 hours</span><span class="a">£180</span><span class="r">Labour: £60/h, pendant 3 h</span></div>
+        <div class="line"><span class="d">Stone setting, 1 main stone</span><span class="a">£40</span><span class="r">Labour: £40 per main stone</span></div>
+        <div class="total"><span>Total due in 30 days</span><b>£1,025</b></div>
+      </div>
+      <div class="why">
+        <div class="from">To the team, automatically</div>
+        <div class="subj">Invoice sent — 1,025.00 GBP</div>
+        <p>Every invoice sends the team a receipt: each line item, the Stripe link, the PDF, and the agent's own reasoning.</p>
+        <span class="lbl">Why</span>
+        <p>What the piece is, what it read from the mock-up, which policy prices it applied, and why the total is what it is. Six sentences, maximum.</p>
+        <div class="note" style="color:var(--beige);opacity:.6">Line items on the left worked through by hand from policy.md, as an example.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 CLOSE -->
+  <section class="slide dark">
+    <div class="kicker">Lumen &amp; Lode — Track 02, agents that collect</div>
+    <div class="close-big">The price was £0.<br>Now the inbox <em>sends the bill.</em></div>
+    <div class="scores">
+      <div><b>Email</b>is the trigger</div>
+      <div><b>Stripe</b>raises the bill</div>
+      <div><b>policy.md</b>sets the limits</div>
+      <div><b>Every line</b>is explained</div>
+    </div>
+  </section>
+
+</div>
+<div class="bar" id="bar"></div>
+<div class="count" id="count"></div>
+<script>
+  const slides=[...document.querySelectorAll('.slide')], stage=document.getElementById('stage');
+  let i=Math.max(0,Math.min(slides.length-1,(parseInt(location.hash.slice(1))||1)-1));
+  function fit(){const s=Math.min(innerWidth/1600,innerHeight/900);stage.style.transform=`translate(-50%,-50%) scale(${s})`}
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('on',k===i));
+    document.getElementById('bar').style.width=((i+1)/slides.length*100)+'%';
+    document.getElementById('count').textContent=`${i+1} / ${slides.length}`;
+    history.replaceState(null,'',`#${i+1}`);
+  }
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1)}
+    if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1)}
+    if(e.key==='Home')show(0); if(e.key==='End')show(slides.length-1);
+    if(e.key==='f')document.documentElement.requestFullscreen?.();
+  });
+  addEventListener('resize',fit); fit(); show(i);
+</script>
+</body>
+</html>
