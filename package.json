@@ -1,0 +1,15 @@
+{
+  "name": "briefcase-stripe-track2-collector",
+  "version": "1.0.0",
+  "description": "Autonomous AI Revenue & Invoicing Agent for Briefcase x Stripe Hackathon (Track 2: Agents that Collect)",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "demo": "node src/demo.ts",
+    "test": "node --test tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}
