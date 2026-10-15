@@ -26,7 +26,64 @@ export interface CogneeMemoryNode {
   createdAt: string;
 }
 
+import type { LumenInvoiceDraft } from './lumen-bridge.ts';
+
+const LUMEN_RATE_CARD_MINOR: Record<string, number> = {
+  SILVER_925_GRAM: 4_00, // £4/g
+  GOLD_9CT_GRAM: 45_00, // £45/g
+  GOLD_14CT_GRAM: 65_00, // £65/g
+  GOLD_18CT_GRAM: 95_00, // £95/g
+  PLATINUM_950_GRAM: 70_00, // £70/g
+  DIAMOND_LAB_GH_VS_CT: 600_00, // £600/ct
+  DIAMOND_NAT_GH_VS_HALF_CT: 2000_00, // 0.50ct @ £4,000/ct = £2,000
+  DIAMOND_NAT_DF_VVS_1_5_CT: 11250_00, // 1.50ct @ £7,500/ct = £11,250
+  SAPPHIRE_CT: 900_00, // £900/ct
+  PAVE_ACCENT_STONE: 30_00, // £30 each
+  CHAIN_9CT_GOLD_45CM: 220_00, // £220
+  CHAIN_18CT_GOLD_45CM: 520_00, // £520
+  CAD_DESIGN: 150_00, // £150 per piece
+  MAKING_HOUR: 60_00, // £60/hr
+  STONE_SETTING_MAIN: 40_00, // £40 per main stone
+  STONE_SETTING_PAVE: 10_00, // £10 per pavé stone
+  RHODIUM_PLATING: 30_00, // £30
+  ENGRAVING_STD: 35_00, // £35
+};
+
 const SEEDED_CUSTOMERS: Record<string, CustomerMemoryProfile> = {
+  cust_lumen_matthew: {
+    customerId: 'cust_lumen_matthew',
+    customerName: 'Matthew Carter',
+    customerEmail: 'matthewcarter2301@gmail.com',
+    contractReference: 'LUMEN-POLICY-2026',
+    paymentTermsDays: 30,
+    contractedRatesMinor: LUMEN_RATE_CARD_MINOR,
+    historicalNotes: [
+      'Resend Thread #1 (01a140f2): Customer attached image.png (east-west marquise bezel pendant on gold chain). Agent asked to clarify metal purity, stone variety, and carat weight.',
+      'Resend Thread #2 (01a140f5): Customer replied "9ct gold with natural diamond of average size". Agent asked to clarify exact carat weight (e.g. 0.50ct) and diamond grade (G–H/VS £4,000/ct vs D–F/VVS £7,500/ct).',
+    ],
+  },
+  cust_lumen_vance: {
+    customerId: 'cust_lumen_vance',
+    customerName: 'Lady Eleanor Vance',
+    customerEmail: 'eleanor@vance-family.co.uk',
+    contractReference: 'LUMEN-VIP-2026',
+    paymentTermsDays: 30,
+    contractedRatesMinor: LUMEN_RATE_CARD_MINOR,
+    historicalNotes: [
+      'Repeat bespoke collector. On 2026-10-10, Jeweller & Collections agreed to a 10% goodwill discount on her October Sapphire & Pavé ring commission due to a prior clasp delay (verified net price stays above £1,610 raw materials cost floor per policy.md §1).',
+    ],
+  },
+  cust_lumen_sterling: {
+    customerId: 'cust_lumen_sterling',
+    customerName: 'Lord Julian Sterling',
+    customerEmail: 'j.sterling@sterling-family.co.uk',
+    contractReference: 'LUMEN-BESPOKE-2026',
+    paymentTermsDays: 30,
+    contractedRatesMinor: LUMEN_RATE_CARD_MINOR,
+    historicalNotes: [
+      'High-value bespoke commission client. Any single piece exceeding £10,000.00 (POL-LIMIT-001) must be staged as a Stripe Test Mode DRAFT for Master Jeweller & CFO sign-off.',
+    ],
+  },
   cust_acme: {
     customerId: 'cust_acme',
     customerName: 'Acme Robotics Ltd',
@@ -128,9 +185,10 @@ export class CogneeMemoryLedger {
     trigger: RealWorldTrigger;
     proposal: InvoiceProposal;
     policyDecision: PolicyDecision;
-    stripeArtifact?: StripeTestInvoiceArtifact;
+    stripeArtifact?: StripeTestInvoiceArtifact | null;
+    lumenDraft?: LumenInvoiceDraft;
   }): Promise<AuditLedgerEntry> {
-    const { trigger, proposal, policyDecision, stripeArtifact } = params;
+    const { trigger, proposal, policyDecision, stripeArtifact, lumenDraft } = params;
     const entryId = `audit_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const now = new Date().toISOString();
 
@@ -158,7 +216,7 @@ export class CogneeMemoryLedger {
     const poundByPoundExplanation = this.buildPoundByPoundExplanation(
       proposal,
       policyDecision,
-      stripeArtifact
+      stripeArtifact ?? undefined
     );
 
     this.memoryNodes.set(auditNodeId, {
@@ -191,7 +249,8 @@ export class CogneeMemoryLedger {
       trigger,
       proposal,
       policyDecision,
-      stripeArtifact,
+      stripeArtifact: stripeArtifact ?? undefined,
+      lumenDraft,
       cogneeMemoryNodeIds: [contractNodeId, triggerNodeId, auditNodeId],
       poundByPoundExplanation,
     };

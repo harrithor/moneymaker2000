@@ -7,8 +7,8 @@ test('AppController exposes state, processes demo triggers, explains invoices, a
 
   // 1. Initial state includes customers, policy, and demo triggers
   const initialState = app.getState();
-  assert.equal(initialState.customers.length, 3);
-  assert.equal(initialState.demoTriggers.length, 4);
+  assert.equal(initialState.customers.length, 6);
+  assert.equal(initialState.demoTriggers.length, 8);
   assert.equal(initialState.auditEntries.length, 0);
 
   // 2. Trigger autonomous invoice creation from demo trigger

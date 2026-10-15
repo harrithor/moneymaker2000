@@ -52,9 +52,16 @@ export interface PolicyDecision {
   checks: PolicyCheckResult[];
 }
 
+import type { LumenInvoiceDraft } from './lumen-bridge.ts';
+
 export interface RealWorldTrigger {
   triggerId: string;
-  type: 'usage_logs' | 'signed_milestone_email' | 'signed_contract_sow' | 'collections_dispute_note';
+  type:
+    | 'bespoke_jewellery_email'
+    | 'usage_logs'
+    | 'signed_milestone_email'
+    | 'signed_contract_sow'
+    | 'collections_dispute_note';
   receivedAt: string;
   customerId: string;
   rawPayload: string;
@@ -79,7 +86,8 @@ export interface AuditLedgerEntry {
   trigger: RealWorldTrigger;
   proposal: InvoiceProposal;
   policyDecision: PolicyDecision;
-  stripeArtifact?: StripeTestInvoiceArtifact;
+  stripeArtifact?: StripeTestInvoiceArtifact | null;
+  lumenDraft?: LumenInvoiceDraft;
   cogneeMemoryNodeIds: string[];
   poundByPoundExplanation: string;
 }

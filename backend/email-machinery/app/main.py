@@ -10,6 +10,7 @@ import resend
 import stripe
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
@@ -18,13 +19,14 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("invoice-agent")
 
-resend.api_key = os.environ["RESEND_API_KEY"]
-WEBHOOK_SECRET = os.environ["RESEND_WEBHOOK_SECRET"]
+resend.api_key = os.getenv("RESEND_API_KEY", "")
+WEBHOOK_SECRET = os.getenv("RESEND_WEBHOOK_SECRET", "")
 REPLY_FROM = os.getenv("REPLY_FROM", "Invoice Agent <onboarding@resend.dev>")
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL")
 MODEL = os.getenv("LLM_MODEL", "gemini-flash-latest")
-gemini = genai.Client()
-stripe_client = stripe.StripeClient(os.environ["STRIPE_SECRET_KEY"])
+MAX_AUTO_FINALIZE_CENTS = int(os.getenv("MAX_AUTO_FINALIZE_CENTS", "1000000"))  # £10,000.00 POL-LIMIT-001
+gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "demo-key")
+stripe_client = stripe.StripeClient(os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder"))
 
 POLICY = (Path(__file__).parent / "policy.md").read_text()
 READABLE_ATTACHMENTS = ("image/", "application/pdf")
@@ -91,8 +93,29 @@ class FaqEntry(BaseModel):
     answer: str
 
 
-app = FastAPI(title="Email-to-Invoice Agent")
+app = FastAPI(title="Lumen & Lode × Briefcase × Stripe — Email-to-Invoice Agent")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 _faq_cache: list[FaqEntry] | None = None
+AUDIT_LEDGER: list[dict] = []
+
+
+@app.get("/api/policy")
+async def get_policy() -> dict[str, object]:
+    return {
+        "policy_markdown": POLICY,
+        "max_auto_finalize_cents": MAX_AUTO_FINALIZE_CENTS,
+        "max_discount_percent": 15,
+    }
+
+
+@app.get("/api/ledger")
+async def get_ledger() -> dict[str, object]:
+    return {"entries": AUDIT_LEDGER}
 
 
 @app.post("/webhooks/resend")
@@ -144,11 +167,52 @@ async def handle_email(data: dict) -> None:
 
     attachments = await fetch_attachments(email_id)
     draft = await extract_invoice(sender, subject, text, attachments)
+    total_cents = sum(item.quantity * item.unit_amount_cents for item in draft.line_items)
     if draft.decision != "invoice" or not draft.line_items:
+        AUDIT_LEDGER.insert(
+            0,
+            {
+                "email_id": email_id,
+                "sender": sender,
+                "subject": subject,
+                "decision": draft.decision,
+                "policy_action": "reject_policy_violation" if draft.decision == "decline" else "clarify_or_answer",
+                "total_cents": total_cents,
+                "draft": draft.model_dump(),
+                "stripe_invoice_id": None,
+            },
+        )
         await reply(data, recipients, subject, draft.message_to_customer)
         return
 
     invoice = await create_stripe_invoice(draft, email_id, fallback_email=parseaddr(sender)[1])
+    policy_action = (
+        "hold_draft_for_approval" if total_cents > MAX_AUTO_FINALIZE_CENTS else "auto_finalize_and_send"
+    )
+    AUDIT_LEDGER.insert(
+        0,
+        {
+            "email_id": email_id,
+            "sender": sender,
+            "subject": subject,
+            "decision": draft.decision,
+            "policy_action": policy_action,
+            "total_cents": total_cents,
+            "draft": draft.model_dump(),
+            "stripe_invoice_id": invoice.id,
+            "stripe_status": invoice.status,
+            "hosted_invoice_url": invoice.hosted_invoice_url,
+        },
+    )
+    if invoice.status == "draft" or not invoice.invoice_pdf:
+        body = (
+            f"{draft.message_to_customer}\n\n"
+            f"Draft Invoice {invoice.id} prepared for {draft.customer_name or draft.customer_email}.\n"
+            f"Total: {total_cents / 100:.2f} {draft.currency.upper()} (held in Stripe draft per POL-LIMIT-001 > £10,000 threshold for Master Jeweller sign-off)."
+        )
+        await reply(data, recipients, subject, body)
+        return
+
     pdf = await download(invoice.invoice_pdf)
     body = (
         f"{draft.message_to_customer}\n\n"
@@ -222,7 +286,9 @@ async def create_stripe_invoice(draft: InvoiceDraft, email_id: str, fallback_ema
         },
         {"idempotency_key": f"{email_id}-invoice"},
     )
+    total_cents = 0
     for i, item in enumerate(draft.line_items):
+        total_cents += item.quantity * item.unit_amount_cents
         await stripe_client.v1.invoice_items.create_async(
             {
                 "customer": customer.id,
@@ -233,6 +299,14 @@ async def create_stripe_invoice(draft: InvoiceDraft, email_id: str, fallback_ema
             },
             {"idempotency_key": f"{email_id}-item-{i}"},
         )
+    if total_cents > MAX_AUTO_FINALIZE_CENTS:
+        log.info(
+            "Stripe invoice %s held in DRAFT (total %d pence exceeds POL-LIMIT-001 %d)",
+            invoice.id,
+            total_cents,
+            MAX_AUTO_FINALIZE_CENTS,
+        )
+        return invoice
     invoice = await stripe_client.v1.invoices.finalize_invoice_async(invoice.id, {"auto_advance": False})
     log.info("Stripe invoice %s finalized: %s", invoice.id, invoice.hosted_invoice_url)
     return invoice
